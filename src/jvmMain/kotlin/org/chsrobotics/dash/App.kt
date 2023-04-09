@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
@@ -23,18 +24,21 @@ import com.konyaco.fluent.lightColors
 import com.mayakapps.compose.windowstyler.WindowBackdrop
 import com.mayakapps.compose.windowstyler.WindowStyle
 
+var columns by mutableStateOf(4)
+var rows by mutableStateOf(3)
+
 @Composable
 @Preview
 fun SpartanDash() {
-    val columns = 4
-    val rows = 3
-
     Row(Modifier.padding(end = 16.dp, bottom = 16.dp)) {
         for (i in 1..columns) {
             Column(Modifier.weight(1f)) {
                 for (j in 1..rows) {
-                    SpartanWidget(Modifier.weight(1f).fillMaxSize()) {
-                        SelectorWidget()
+                    SpartanWidget(
+                        text = "Drive Mode",
+                        modifier = Modifier.weight(1f).fillMaxSize()
+                    ) {
+                        SelectorElement()
                     }
                 }
             }
@@ -44,9 +48,9 @@ fun SpartanDash() {
 
 @Composable
 @Preview
-fun SpartanWidget(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+fun SpartanWidget(text: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     Column(modifier.padding(start = 16.dp, top = 16.dp)) {
-        Text("Drive Mode", modifier = Modifier.padding(start = 8.dp, bottom = 6.dp))
+        Text(text, modifier = Modifier.padding(start = 16.dp, bottom = 6.dp))
         Layer(
             modifier = Modifier.fillMaxSize(),
             shape = RoundedCornerShape(8.dp),
@@ -61,38 +65,52 @@ fun SpartanWidget(modifier: Modifier = Modifier, content: @Composable () -> Unit
     }
 }
 
+data class SelectorWidget(
+    val options: Map<String, String>,
+    val selected: String
+)
+
 @Composable
 @Preview
-fun SelectorWidget() {
+fun SelectorElement() {
     Box {
+        var selector by remember { mutableStateOf(SelectorWidget(
+            mapOf(
+                "arcade" to "Arcade",
+                "curvature" to "Curvature",
+                "mixed" to "Mixed Curvature-Arcade"
+            ),
+            "arcade"
+        )) }
+
+        fun select(selected: String) {
+            selector = selector.copy(selected = selected)
+        }
+        fun selectedName() = selector.options[selector.selected]?:""
+
         var expanded by remember { mutableStateOf(false) }
-        var selected by remember { mutableStateOf("Option 1") }
         fun close() {
             expanded = false
         }
-        Button(onClick = {
-            expanded = true
-        }) {
-            Text(selected)
+        fun toggle() {
+            expanded = !expanded
         }
+
+        Button(
+            onClick = ::toggle,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(selectedName())
+        }
+
         DropdownMenu(expanded = expanded, onDismissRequest = ::close) {
-            DropdownMenuItem({
-                close()
-                selected = "Option 1"
-            }) {
-                Text("Option 1")
-            }
-            DropdownMenuItem({
-                close()
-                selected = "Option 2"
-            }) {
-                Text("Option 2")
-            }
-            DropdownMenuItem({
-                close()
-                selected = "Option 3"
-            }) {
-                Text("Option 3")
+            for (option in selector.options) {
+                DropdownMenuItem({
+                    close()
+                    select(option.key)
+                }) {
+                    Text(option.value)
+                }
             }
         }
     }
@@ -126,9 +144,14 @@ fun SpartanWindow(onCloseRequest: () -> Unit, content: @Composable () -> Unit) {
             backdropType = WindowBackdrop.Acrylic(FluentTheme.colors.background.layer.default)
         )
 
+        val modifier = Modifier.onSizeChanged {
+            columns = it.width / 500
+            rows = it.height / 350
+        }
+
         if (customTitleBar) {
             Mica(
-                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp)).padding(5.dp).shadow(3.dp, RoundedCornerShape(10.dp)),
+                modifier = modifier.fillMaxSize().clip(RoundedCornerShape(10.dp)).padding(5.dp).shadow(3.dp, RoundedCornerShape(10.dp)),
             ) {
                 Column {
                     WindowDraggableArea {
@@ -139,9 +162,11 @@ fun SpartanWindow(onCloseRequest: () -> Unit, content: @Composable () -> Unit) {
             }
         } else {
             if (isWindows) {
-                content()
+                Box(modifier) {
+                    content()
+                }
             } else {
-                Mica(Modifier.fillMaxSize()) {
+                Mica(modifier.fillMaxSize()) {
                     content()
                 }
             }

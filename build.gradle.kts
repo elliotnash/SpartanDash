@@ -37,6 +37,10 @@ compose.desktop {
     application {
         mainClass = "org.chsrobotics.dash.AppKt"
         nativeDistributions {
+            // Set system title bar colors.
+            jvmArgs(
+                "-Dapple.awt.application.appearance=system"
+            )
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "SpartanDash"
             packageVersion = "1.0.0"
