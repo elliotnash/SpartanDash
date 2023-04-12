@@ -23,23 +23,89 @@ import com.konyaco.fluent.darkColors
 import com.konyaco.fluent.lightColors
 import com.mayakapps.compose.windowstyler.WindowBackdrop
 import com.mayakapps.compose.windowstyler.WindowStyle
+import java.util.UUID
 
 var columns by mutableStateOf(4)
 var rows by mutableStateOf(3)
 
+abstract class SpartanWidget {
+    abstract val name: String
+    val uuid = UUID.randomUUID()
+}
+
+class SelectorWidget (
+    override val name: String,
+    val options: Map<String, String>,
+    selected: String
+) : SpartanWidget() {
+    var selected by mutableStateOf(selected)
+}
+
+data class DashLayout internal constructor(
+    val columns: Int,
+    val rows: Int
+) {
+    private var _items: MutableMap<SpartanWidget, GridLayout> = mutableMapOf()
+    val items: Map<SpartanWidget, GridLayout> get() = _items
+    fun place(widget: SpartanWidget, column: Int, row: Int, columnSpan: Int = 1, rowSpan: Int = 1) {
+        place(widget, GridLayout(column, row, columnSpan, rowSpan))
+    }
+    fun place(widget: SpartanWidget, layout: GridLayout) {
+        _items[widget] = layout
+    }
+}
+
+class SpartanDash(
+    private val layoutBuilder: DashLayout.() -> Unit
+) {
+    fun buildLayout(columns: Int, rows: Int): DashLayout {
+        val layout = DashLayout(columns, rows)
+        layoutBuilder(layout)
+        return layout
+    }
+}
+
+var driveModeWidget = SelectorWidget(
+    "Drive Mode",
+    mapOf(
+        "arcade" to "Arcade",
+        "curvature" to "Curvature",
+        "mixed" to "Mixed Curvature-Arcade"
+    ),
+    "arcade"
+)
+
+var driveModeWidget2 = SelectorWidget(
+    "Drive Mode 2",
+    mapOf(
+        "arcade" to "Arcade",
+        "curvature" to "Curvature",
+        "mixed" to "Mixed Curvature-Arcade"
+    ),
+    "arcade"
+)
+
+val dashboard = SpartanDash {
+    place(driveModeWidget, 0, 0)
+    place(driveModeWidget2, columns-1, rows-1, 1, 1)
+}
+
 @Composable
 @Preview
-fun SpartanDash() {
-    Row(Modifier.padding(end = 16.dp, bottom = 16.dp)) {
-        for (i in 1..columns) {
-            Column(Modifier.weight(1f)) {
-                for (j in 1..rows) {
-                    SpartanWidget(
-                        text = "Drive Mode",
-                        modifier = Modifier.weight(1f).fillMaxSize()
-                    ) {
-                        SelectorElement()
-                    }
+fun SpartanDashPage() {
+    val layout = dashboard.buildLayout(columns, rows)
+    Grid(
+        columns = columns,
+        rows = rows,
+        modifier = Modifier.padding(end = 16.dp, bottom = 16.dp)
+    ) {
+        layout.items.forEach { (widget, layout) ->
+            SpartanWidgetFrame(
+                text = widget.name,
+                modifier = Modifier.fillMaxSize().grid(layout)
+            ) {
+                if (widget is SelectorWidget) {
+                    SelectorWidgetElement(widget)
                 }
             }
         }
@@ -48,7 +114,7 @@ fun SpartanDash() {
 
 @Composable
 @Preview
-fun SpartanWidget(text: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+fun SpartanWidgetFrame(text: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     Column(modifier.padding(start = 16.dp, top = 16.dp)) {
         Text(text, modifier = Modifier.padding(start = 16.dp, bottom = 6.dp))
         Layer(
@@ -65,26 +131,12 @@ fun SpartanWidget(text: String, modifier: Modifier = Modifier, content: @Composa
     }
 }
 
-data class SelectorWidget(
-    val options: Map<String, String>,
-    val selected: String
-)
-
 @Composable
 @Preview
-fun SelectorElement() {
+fun SelectorWidgetElement(selector: SelectorWidget) {
     Box {
-        var selector by remember { mutableStateOf(SelectorWidget(
-            mapOf(
-                "arcade" to "Arcade",
-                "curvature" to "Curvature",
-                "mixed" to "Mixed Curvature-Arcade"
-            ),
-            "arcade"
-        )) }
-
         fun select(selected: String) {
-            selector = selector.copy(selected = selected)
+            selector.selected = selected
         }
         fun selectedName() = selector.options[selector.selected]?:""
 
@@ -177,7 +229,7 @@ fun SpartanWindow(onCloseRequest: () -> Unit, content: @Composable () -> Unit) {
 fun main() = application {
     SpartanTheme {
         SpartanWindow(onCloseRequest = ::exitApplication) {
-            SpartanDash()
+            SpartanDashPage()
         }
     }
 }
