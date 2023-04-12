@@ -24,6 +24,7 @@ import com.konyaco.fluent.lightColors
 import com.mayakapps.compose.windowstyler.WindowBackdrop
 import com.mayakapps.compose.windowstyler.WindowStyle
 import java.util.UUID
+import kotlin.math.max
 
 var columns by mutableStateOf(4)
 var rows by mutableStateOf(3)
@@ -197,8 +198,8 @@ fun SpartanWindow(onCloseRequest: () -> Unit, content: @Composable () -> Unit) {
         )
 
         val modifier = Modifier.onSizeChanged {
-            columns = it.width / 500
-            rows = it.height / 350
+            columns = max(it.width / 500, 1)
+            rows = max(it.height / 350, 1)
         }
 
         if (customTitleBar) {
