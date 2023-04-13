@@ -12,6 +12,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
@@ -197,9 +198,12 @@ fun SpartanWindow(onCloseRequest: () -> Unit, content: @Composable () -> Unit) {
             backdropType = WindowBackdrop.Acrylic(FluentTheme.colors.background.layer.default)
         )
 
+        val density = LocalDensity.current
         val modifier = Modifier.onSizeChanged {
-            columns = max(it.width / 500, 1)
-            rows = max(it.height / 350, 1)
+            density.apply {
+                columns = max((it.width.toDp() / WIDGET_WIDTH).toInt(), 1)
+                rows = max((it.height.toDp() / WIDGET_HEIGHT).toInt(), 1)
+            }
         }
 
         if (customTitleBar) {
